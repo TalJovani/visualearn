@@ -2,16 +2,55 @@ import { useState } from 'react';
 import BubbleSortVisualizer from './components/BubbleSortVisualizer';
 import './App.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function App() {
   const [topic, setTopic] = useState('bubble-sort');
   const [explanation, setExplanation] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleTopicChange = (e) => {
     setTopic(e.target.value);
   };
 
   const handleAsk = async () => {
-    setExplanation(`Understanding ${topic}...`);
+    setExplanation('');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/explain?topic=${topic}`);
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const { text } = JSON.parse(line);
+          setExplanation((prev) => prev + text);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to get explanation. Is the backend running on ' + API_URL + '?');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -29,10 +68,12 @@ export default function App() {
             <option value="quick-sort">Quick Sort</option>
           </select>
 
-          <button onClick={handleAsk}>
-            🚀 Visualize & Explain
+          <button onClick={handleAsk} disabled={isLoading}>
+            {isLoading ? '⏳ Thinking...' : '🚀 Visualize & Explain'}
           </button>
         </div>
+
+        {error && <p className="error">{error}</p>}
 
         <div className="content">
           <div className="visualizer-section">
