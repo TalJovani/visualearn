@@ -30,7 +30,7 @@ An AI-powered educational visualization platform. Pick a computer science topic,
 visualearn/
 ├── frontend/               React + Vite app
 │   ├── src/
-│   │   ├── App.jsx         Main UI: topic picker, AI           explanation panel
+│   │   ├── App.jsx         Main UI: topic picker, AI explanation panel
 │   │   ├── components/     One visualizer component per algorithm
 │   │   └── main.jsx
 │   └── package.json
