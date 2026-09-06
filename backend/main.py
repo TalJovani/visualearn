@@ -30,12 +30,12 @@ async def explain(topic: str):
     """Stream explanation for a given topic"""
     
     prompts = {
-        "bubble-sort": "Explain bubble sort algorithm step by step in 2-3 sentences. Start with the basic idea.",
-        "binary-search": "Explain binary search algorithm in 2-3 sentences. Focus on how it divides the problem.",
-        "quick-sort": "Explain quicksort algorithm in 2-3 sentences. Focus on the partition concept.",
+        "bubble-sort": "Explain the bubble sort algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity (best, average and worst case) and why.",
+        "binary-search": "Explain the binary search algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity and why.",
+        "quick-sort": "Explain the quicksort algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity (best, average and worst case) and why.",
     }
-    
-    prompt = prompts.get(topic, f"Explain {topic} in 2-3 sentences.")
+
+    prompt = prompts.get(topic, f"Explain {topic} in 4-5 short sentences: the core idea, its goal, and its time complexity.")
     
     def generate():
         response = client.chat.completions.create(

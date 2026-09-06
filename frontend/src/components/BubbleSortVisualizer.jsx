@@ -2,16 +2,37 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import './BubbleSortVisualizer.css';
 
-export default function BubbleSortVisualizer() {
+export default function BubbleSortVisualizer({ explanation }) {
   const [array, setArray] = useState([5, 3, 8, 1, 9, 2, 7, 4]);
   const [comparing, setComparing] = useState([]);
   const [sorted, setSorted] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
 
+  // ✅ NEW: Voice function — returns a promise that resolves once speech finishes,
+  // so the caller can `await` it and stay in sync with the narration.
+  const speakExplanation = (text) => {
+    return new Promise((resolve) => {
+      if (!('speechSynthesis' in window)) {
+        resolve();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.onend = resolve;
+      utterance.onerror = resolve;
+      window.speechSynthesis.speak(utterance);
+    });
+  };
+
   const bubbleSort = async () => {
     setIsRunning(true);
     let arr = [...array];
     let newSorted = [];
+
+    // ✅ Speak at start
+    await speakExplanation("Starting bubble sort algorithm");
 
     for (let i = 0; i < arr.length; i++) {
       for (let j = 0; j < arr.length - i - 1; j++) {
@@ -19,6 +40,7 @@ export default function BubbleSortVisualizer() {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         if (arr[j] > arr[j + 1]) {
+          await speakExplanation(`Swapping ${arr[j]} and ${arr[j + 1]}`);
           [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
           setArray([...arr]);
         }
@@ -30,6 +52,9 @@ export default function BubbleSortVisualizer() {
 
     setComparing([]);
     setIsRunning(false);
+    
+    // ✅ Speak when done
+    speakExplanation("Sorting complete");
   };
 
   const resetArray = () => {
@@ -71,6 +96,11 @@ export default function BubbleSortVisualizer() {
         <button onClick={resetArray} disabled={isRunning}>
           Reset
         </button>
+        {explanation && (
+          <button onClick={() => speakExplanation(explanation)}>
+            🔊 Read Explanation
+          </button>
+        )}
       </div>
 
       <p className="info">

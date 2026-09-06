@@ -77,7 +77,7 @@ export default function App() {
 
         <div className="content">
           <div className="visualizer-section">
-            {topic === 'bubble-sort' && <BubbleSortVisualizer />}
+            {topic === 'bubble-sort' && <BubbleSortVisualizer explanation={explanation} />}
             {topic === 'binary-search' && <p>Binary search coming soon</p>}
             {topic === 'quick-sort' && <p>Quick sort coming soon</p>}
           </div>
