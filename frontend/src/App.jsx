@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import BubbleSortVisualizer from './components/BubbleSortVisualizer';
+import BinarySearchVisualizer from './components/BinarySearchVisualizer';
+import FibonacciVisualizer from './components/FibonacciVisualizer';
+import QuickSortVisualizer from './components/QuickSortVisualizer';
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -65,6 +68,7 @@ export default function App() {
           <select value={topic} onChange={handleTopicChange}>
             <option value="bubble-sort">Bubble Sort</option>
             <option value="binary-search">Binary Search</option>
+            <option value="fibonacci">Fibonacci</option>
             <option value="quick-sort">Quick Sort</option>
           </select>
 
@@ -78,8 +82,9 @@ export default function App() {
         <div className="content">
           <div className="visualizer-section">
             {topic === 'bubble-sort' && <BubbleSortVisualizer explanation={explanation} />}
-            {topic === 'binary-search' && <p>Binary search coming soon</p>}
-            {topic === 'quick-sort' && <p>Quick sort coming soon</p>}
+            {topic === 'binary-search' && <BinarySearchVisualizer explanation={explanation} />}
+            {topic === 'fibonacci' && <FibonacciVisualizer explanation={explanation} />}
+            {topic === 'quick-sort' && <QuickSortVisualizer explanation={explanation} />}
           </div>
 
           {explanation && (

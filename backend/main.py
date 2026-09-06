@@ -33,6 +33,7 @@ async def explain(topic: str):
         "bubble-sort": "Explain the bubble sort algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity (best, average and worst case) and why.",
         "binary-search": "Explain the binary search algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity and why.",
         "quick-sort": "Explain the quicksort algorithm in 4-5 short sentences: what the core idea is, what goal it achieves, and finish with its time complexity (best, average and worst case) and why.",
+        "fibonacci": "Explain the Fibonacci sequence in 4-5 short sentences: what the core idea is (each number is the sum of the two before it), what goal or purpose it models, and finish with the time complexity of computing it recursively versus iteratively and why.",
     }
 
     prompt = prompts.get(topic, f"Explain {topic} in 4-5 short sentences: the core idea, its goal, and its time complexity.")
