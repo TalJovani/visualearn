@@ -1,16 +1,27 @@
-# React + Vite
+# VisuaLearn — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite app for VisuaLearn. See the [project README](../README.md) for the full picture (what this is, how it works, tech stack).
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Runs at `http://localhost:5173`. Requires the [backend](../backend/README.md) running at `http://localhost:8000` for the AI explanation feature to work — the visualizations themselves run without it.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Scripts
 
-## Expanding the Oxlint configuration
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server with hot reload |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run Oxlint |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Structure
+
+- `src/App.jsx` — topic picker, calls the backend's `/explain` endpoint, streams the response into the explanation panel
+- `src/components/*Visualizer.jsx` — one component per algorithm, each owns its own animation state and voice narration
+- Adding a new algorithm: create a new `<Name>Visualizer.jsx` (copy an existing one as a template), register it in `App.jsx`'s topic list, and add a matching prompt in `backend/main.py`
