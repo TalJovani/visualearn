@@ -1,46 +1,45 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useVoiceNarration } from '../hooks/useVoiceNarration';
+import { generateSortArray } from '../utils/arrayPresets';
 import './BubbleSortVisualizer.css';
 
 export default function BubbleSortVisualizer({ explanation }) {
-  const [array, setArray] = useState([5, 3, 8, 1, 9, 2, 7, 4]);
+  const [arrayType, setArrayType] = useState('random');
+  const [array, setArray] = useState(() => generateSortArray('random'));
   const [comparing, setComparing] = useState([]);
   const [sorted, setSorted] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
-
-  // ✅ NEW: Voice function — returns a promise that resolves once speech finishes,
-  // so the caller can `await` it and stay in sync with the narration.
-  const speakExplanation = (text) => {
-    return new Promise((resolve) => {
-      if (!('speechSynthesis' in window)) {
-        resolve();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
-      window.speechSynthesis.speak(utterance);
-    });
-  };
+  const [isPaused, setIsPaused] = useState(false);
+  const {
+    speak: speakExplanation,
+    checkpoint,
+    reset: resetRun,
+    pause: pauseRun,
+    resume: resumeRun,
+    abort: abortRun,
+  } = useVoiceNarration();
 
   const bubbleSort = async () => {
+    resetRun();
     setIsRunning(true);
+    setIsPaused(false);
+
     let arr = [...array];
     let newSorted = [];
 
-    // ✅ Speak at start
-    await speakExplanation("Starting bubble sort algorithm");
+    await speakExplanation('Starting bubble sort algorithm');
+    if (await checkpoint()) return;
 
     for (let i = 0; i < arr.length; i++) {
       for (let j = 0; j < arr.length - i - 1; j++) {
         setComparing([j, j + 1]);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (await checkpoint()) return;
 
         if (arr[j] > arr[j + 1]) {
           await speakExplanation(`Swapping ${arr[j]} and ${arr[j + 1]}`);
+          if (await checkpoint()) return;
           [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
           setArray([...arr]);
         }
@@ -52,13 +51,35 @@ export default function BubbleSortVisualizer({ explanation }) {
 
     setComparing([]);
     setIsRunning(false);
-    
-    // ✅ Speak when done
-    speakExplanation("Sorting complete");
+
+    await speakExplanation('Sorting complete');
+  };
+
+  const handlePlay = () => {
+    if (isPaused) {
+      setIsPaused(false);
+      resumeRun();
+    } else {
+      bubbleSort();
+    }
+  };
+
+  const handlePause = () => {
+    setIsPaused(true);
+    pauseRun();
+  };
+
+  const randomize = () => {
+    if (isRunning) return;
+    setArray(generateSortArray(arrayType));
+    setComparing([]);
+    setSorted([]);
   };
 
   const resetArray = () => {
-    setArray([5, 3, 8, 1, 9, 2, 7, 4]);
+    abortRun();
+    setIsRunning(false);
+    setIsPaused(false);
     setComparing([]);
     setSorted([]);
   };
@@ -67,11 +88,30 @@ export default function BubbleSortVisualizer({ explanation }) {
     <div className="visualizer">
       <h3>Bubble Sort</h3>
 
+      <div className="array-controls">
+        <label>
+          Array:
+          <select
+            value={arrayType}
+            onChange={(e) => setArrayType(e.target.value)}
+            disabled={isRunning}
+          >
+            <option value="random">Random</option>
+            <option value="sorted">Already sorted (best case)</option>
+            <option value="reverse">Reverse sorted (worst case)</option>
+            <option value="duplicates">All same value</option>
+          </select>
+        </label>
+        <button onClick={randomize} disabled={isRunning}>
+          🎲 Randomize Numbers
+        </button>
+      </div>
+
       <div className="bars-container">
         {array.map((num, i) => {
-          let color = 'blue';
-          if (comparing.includes(i)) color = 'red';
-          if (sorted.includes(i)) color = 'green';
+          let color = 'var(--color-default)';
+          if (comparing.includes(i)) color = 'var(--color-compare)';
+          if (sorted.includes(i)) color = 'var(--color-sorted)';
 
           return (
             <motion.div
@@ -90,10 +130,13 @@ export default function BubbleSortVisualizer({ explanation }) {
       </div>
 
       <div className="controls">
-        <button onClick={bubbleSort} disabled={isRunning}>
-          Start Sort
+        <button onClick={handlePlay} disabled={isRunning && !isPaused}>
+          ▶ Play
         </button>
-        <button onClick={resetArray} disabled={isRunning}>
+        <button className="stop-btn" onClick={handlePause} disabled={!isRunning || isPaused}>
+          Stop
+        </button>
+        <button onClick={resetArray} disabled={isRunning && !isPaused}>
           Reset
         </button>
         {explanation && (
@@ -104,7 +147,11 @@ export default function BubbleSortVisualizer({ explanation }) {
       </div>
 
       <p className="info">
-        {isRunning ? 'Sorting...' : 'Click "Start Sort" to see bubble sort in action'}
+        {isPaused
+          ? 'Paused — click Play to continue'
+          : isRunning
+          ? 'Sorting...'
+          : 'Click "Play" to see bubble sort in action'}
       </p>
     </div>
   );

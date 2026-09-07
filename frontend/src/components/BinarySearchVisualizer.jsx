@@ -1,62 +1,64 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useVoiceNarration } from '../hooks/useVoiceNarration';
+import { generateSearchArray } from '../utils/arrayPresets';
 import './BinarySearchVisualizer.css';
 
-const ARRAY = [2, 5, 8, 12, 16, 23, 38, 45, 56, 72, 91];
-
 export default function BinarySearchVisualizer({ explanation }) {
-  const [target, setTarget] = useState(45);
+  const [arrayType, setArrayType] = useState('unique');
+  const [array, setArray] = useState(() => generateSearchArray('unique'));
+  const [target, setTarget] = useState(() => array[Math.floor(array.length / 2)]);
   const [low, setLow] = useState(null);
   const [high, setHigh] = useState(null);
   const [mid, setMid] = useState(null);
   const [found, setFound] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const {
+    speak: speakExplanation,
+    checkpoint,
+    reset: resetRun,
+    pause: pauseRun,
+    resume: resumeRun,
+    abort: abortRun,
+  } = useVoiceNarration();
 
-  const speakExplanation = (text) => {
-    return new Promise((resolve) => {
-      if (!('speechSynthesis' in window)) {
-        resolve();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
-      window.speechSynthesis.speak(utterance);
-    });
-  };
+  const notInArrayValue = Math.max(...array) + 1;
 
   const search = async () => {
+    resetRun();
     setIsRunning(true);
+    setIsPaused(false);
     setFound(null);
     setMid(null);
 
     let lo = 0;
-    let hi = ARRAY.length - 1;
+    let hi = array.length - 1;
     setLow(lo);
     setHigh(hi);
 
     await speakExplanation(`Searching for ${target}`);
+    if (await checkpoint()) return;
 
     while (lo <= hi) {
       const m = Math.floor((lo + hi) / 2);
       setMid(m);
       await new Promise((resolve) => setTimeout(resolve, 600));
+      if (await checkpoint()) return;
 
-      if (ARRAY[m] === target) {
+      if (array[m] === target) {
         setFound(m);
         await speakExplanation(`Found ${target} at index ${m}`);
         setIsRunning(false);
         return;
-      } else if (ARRAY[m] < target) {
-        await speakExplanation(`${ARRAY[m]} is less than ${target}, searching the right half`);
+      } else if (array[m] < target) {
+        await speakExplanation(`${array[m]} is less than ${target}, searching the right half`);
         lo = m + 1;
       } else {
-        await speakExplanation(`${ARRAY[m]} is greater than ${target}, searching the left half`);
+        await speakExplanation(`${array[m]} is greater than ${target}, searching the left half`);
         hi = m - 1;
       }
+      if (await checkpoint()) return;
 
       setLow(lo);
       setHigh(hi);
@@ -68,7 +70,35 @@ export default function BinarySearchVisualizer({ explanation }) {
     setIsRunning(false);
   };
 
+  const handlePlay = () => {
+    if (isPaused) {
+      setIsPaused(false);
+      resumeRun();
+    } else {
+      search();
+    }
+  };
+
+  const handlePause = () => {
+    setIsPaused(true);
+    pauseRun();
+  };
+
+  const randomize = () => {
+    if (isRunning) return;
+    const newArray = generateSearchArray(arrayType);
+    setArray(newArray);
+    setTarget(newArray[Math.floor(newArray.length / 2)]);
+    setLow(null);
+    setHigh(null);
+    setMid(null);
+    setFound(null);
+  };
+
   const reset = () => {
+    abortRun();
+    setIsRunning(false);
+    setIsPaused(false);
     setLow(null);
     setHigh(null);
     setMid(null);
@@ -81,22 +111,36 @@ export default function BinarySearchVisualizer({ explanation }) {
 
       <div className="search-controls">
         <label>
+          Array:
+          <select
+            value={arrayType}
+            onChange={(e) => setArrayType(e.target.value)}
+            disabled={isRunning}
+          >
+            <option value="unique">Random (unique values)</option>
+            <option value="duplicates">With duplicate values</option>
+          </select>
+        </label>
+        <button onClick={randomize} disabled={isRunning}>
+          🎲 Randomize Numbers
+        </button>
+        <label>
           Target:
           <select
             value={target}
             onChange={(e) => setTarget(Number(e.target.value))}
             disabled={isRunning}
           >
-            {ARRAY.map((num) => (
-              <option key={num} value={num}>{num}</option>
+            {array.map((num, i) => (
+              <option key={i} value={num}>{num}</option>
             ))}
-            <option value={100}>100 (not in array)</option>
+            <option value={notInArrayValue}>{notInArrayValue} (not in array)</option>
           </select>
         </label>
       </div>
 
       <div className="bars-container">
-        {ARRAY.map((num, i) => {
+        {array.map((num, i) => {
           const inRange = low !== null && high !== null && i >= low && i <= high;
           let className = 'cell';
           if (low !== null && !inRange) className += ' eliminated';
@@ -113,10 +157,13 @@ export default function BinarySearchVisualizer({ explanation }) {
       </div>
 
       <div className="controls">
-        <button onClick={search} disabled={isRunning}>
-          Start Search
+        <button onClick={handlePlay} disabled={isRunning && !isPaused}>
+          ▶ Play
         </button>
-        <button onClick={reset} disabled={isRunning}>
+        <button className="stop-btn" onClick={handlePause} disabled={!isRunning || isPaused}>
+          Stop
+        </button>
+        <button onClick={reset} disabled={isRunning && !isPaused}>
           Reset
         </button>
         {explanation && (
@@ -127,10 +174,12 @@ export default function BinarySearchVisualizer({ explanation }) {
       </div>
 
       <p className="info">
-        {isRunning
+        {isPaused
+          ? 'Paused — click Play to continue'
+          : isRunning
           ? 'Searching...'
           : found === null
-          ? 'Pick a target and click "Start Search"'
+          ? 'Pick a target and click "Play"'
           : found === 'not-found'
           ? `${target} was not found`
           : `Found ${target} at index ${found}`}

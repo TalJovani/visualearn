@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useVoiceNarration } from '../hooks/useVoiceNarration';
 import './FibonacciVisualizer.css';
 
 const COUNT = 10;
@@ -8,52 +9,69 @@ export default function FibonacciVisualizer({ explanation }) {
   const [sequence, setSequence] = useState([]);
   const [highlighted, setHighlighted] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
-
-  const speakExplanation = (text) => {
-    return new Promise((resolve) => {
-      if (!('speechSynthesis' in window)) {
-        resolve();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
-      window.speechSynthesis.speak(utterance);
-    });
-  };
+  const [isPaused, setIsPaused] = useState(false);
+  const {
+    speak: speakExplanation,
+    checkpoint,
+    reset: resetRun,
+    pause: pauseRun,
+    resume: resumeRun,
+    abort: abortRun,
+  } = useVoiceNarration();
 
   const run = async () => {
+    resetRun();
     setIsRunning(true);
+    setIsPaused(false);
     setHighlighted([]);
 
     await speakExplanation('Building the Fibonacci sequence');
+    if (await checkpoint()) return;
 
     let seq = [0, 1];
     setSequence([...seq]);
     setHighlighted([0, 1]);
     await new Promise((resolve) => setTimeout(resolve, 500));
+    if (await checkpoint()) return;
 
     for (let i = 2; i < COUNT; i++) {
       setHighlighted([i - 2, i - 1]);
       await new Promise((resolve) => setTimeout(resolve, 500));
+      if (await checkpoint()) return;
 
       const next = seq[i - 1] + seq[i - 2];
       await speakExplanation(`${seq[i - 2]} plus ${seq[i - 1]} equals ${next}`);
+      if (await checkpoint()) return;
 
       seq = [...seq, next];
       setSequence([...seq]);
       setHighlighted([i]);
       await new Promise((resolve) => setTimeout(resolve, 300));
+      if (await checkpoint()) return;
     }
 
     setHighlighted([]);
     setIsRunning(false);
   };
 
+  const handlePlay = () => {
+    if (isPaused) {
+      setIsPaused(false);
+      resumeRun();
+    } else {
+      run();
+    }
+  };
+
+  const handlePause = () => {
+    setIsPaused(true);
+    pauseRun();
+  };
+
   const reset = () => {
+    abortRun();
+    setIsRunning(false);
+    setIsPaused(false);
     setSequence([]);
     setHighlighted([]);
   };
@@ -64,7 +82,7 @@ export default function FibonacciVisualizer({ explanation }) {
 
       <div className="fib-container">
         {sequence.length === 0 && (
-          <p className="fib-placeholder">Click "Start" to build the sequence</p>
+          <p className="fib-placeholder">Click "Play" to build the sequence</p>
         )}
         {sequence.map((num, i) => (
           <motion.div
@@ -81,10 +99,13 @@ export default function FibonacciVisualizer({ explanation }) {
       </div>
 
       <div className="controls">
-        <button onClick={run} disabled={isRunning}>
-          Start
+        <button onClick={handlePlay} disabled={isRunning && !isPaused}>
+          ▶ Play
         </button>
-        <button onClick={reset} disabled={isRunning}>
+        <button className="stop-btn" onClick={handlePause} disabled={!isRunning || isPaused}>
+          Stop
+        </button>
+        <button onClick={reset} disabled={isRunning && !isPaused}>
           Reset
         </button>
         {explanation && (
@@ -95,7 +116,11 @@ export default function FibonacciVisualizer({ explanation }) {
       </div>
 
       <p className="info">
-        {isRunning ? 'Calculating...' : 'Each number is the sum of the two before it'}
+        {isPaused
+          ? 'Paused — click Play to continue'
+          : isRunning
+          ? 'Calculating...'
+          : 'Each number is the sum of the two before it'}
       </p>
     </div>
   );
