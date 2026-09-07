@@ -37,6 +37,10 @@ curl "http://localhost:8000/explain?topic=bubble-sort"
 
 Health check — returns `{"message": "VisuaLearn API is running"}`.
 
+## Deployment
+
+Deployed on Render using the `render.yaml` blueprint at the repo root (New → Blueprint on [dashboard.render.com](https://dashboard.render.com), select this repo, enter `OPENAI_API_KEY` when prompted). Render assigns its own port via the `PORT` env var, which `main.py` reads automatically.
+
 ## Adding a new topic
 
 Add a `"topic-name": "prompt text"` entry to the `prompts` dict in `main.py`, then add a matching option in the frontend's topic picker.
@@ -45,4 +49,4 @@ Add a `"topic-name": "prompt text"` entry to the `prompts` dict in `main.py`, th
 
 - Uses `gpt-4o-mini` — cheap and fast, well suited for short explanations.
 - `openai>=1.0` client syntax (`client.chat.completions.create(...)`) — the old `openai.ChatCompletion.create(...)` API was removed in that version.
-- CORS is currently open (`allow_origins` includes `"*"`) for local development; tighten this before deploying publicly.
+- CORS is currently open (`allow_origins` includes `"*"`) — fine for this project's scope, but worth tightening to the actual frontend domain if this ever needs to be more locked down.
