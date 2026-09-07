@@ -61,6 +61,7 @@ export default function App() {
       <header>
         <h1>🎓 VisuaLearn</h1>
         <p>Visualize any concept with AI explanation</p>
+        <p className="tagline">Get ready to fall in love with algorithms 🤩</p>
       </header>
 
       <main>
